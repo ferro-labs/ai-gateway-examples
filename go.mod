@@ -2,7 +2,7 @@ module github.com/ferro-labs/ai-gateway-examples
 
 go 1.24.0
 
-require github.com/ferro-labs/ai-gateway v0.8.5
+require github.com/ferro-labs/ai-gateway v1.0.0-rc.1
 
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
