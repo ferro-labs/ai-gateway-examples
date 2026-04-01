@@ -129,4 +129,4 @@ OPENAI_API_KEY=sk-... go run ./with-mcp
 ## More Information
 
 - [AI Gateway repository](https://github.com/ferro-labs/ai-gateway)
-- [Documentation](https://github.com/ferro-labs/docs)
+- [Documentation](https://github.com/ferro-labs/ferrolabs-docs)
