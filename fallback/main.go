@@ -17,19 +17,11 @@ import (
 
 	aigateway "github.com/ferro-labs/ai-gateway"
 	"github.com/ferro-labs/ai-gateway/providers"
-
-	anthropicpkg "github.com/ferro-labs/ai-gateway/providers/anthropic"
-	coherepkg "github.com/ferro-labs/ai-gateway/providers/cohere"
-	deepseekpkg "github.com/ferro-labs/ai-gateway/providers/deepseek"
-	geminipkg "github.com/ferro-labs/ai-gateway/providers/gemini"
-	groqpkg "github.com/ferro-labs/ai-gateway/providers/groq"
-	mistralpkg "github.com/ferro-labs/ai-gateway/providers/mistral"
-	openaipkg "github.com/ferro-labs/ai-gateway/providers/openai"
-	togetherpkg "github.com/ferro-labs/ai-gateway/providers/together"
+	"github.com/ferro-labs/ai-gateway-examples/shared"
 )
 
 func main() {
-	configured := configuredProviders()
+	configured := shared.ConfiguredProviders()
 	if len(configured) == 0 {
 		log.Fatal("No provider key set. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY, MISTRAL_API_KEY, TOGETHER_API_KEY, COHERE_API_KEY, DEEPSEEK_API_KEY")
 	}
@@ -62,7 +54,7 @@ func main() {
 		Messages: []providers.Message{
 			{Role: "user", Content: "Say hello in one sentence."},
 		},
-		MaxTokens: intPtr(50),
+		MaxTokens: shared.IntPtr(50),
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -78,35 +70,4 @@ func main() {
 
 	out, _ := json.MarshalIndent(resp, "", "  ")
 	fmt.Println(string(out))
-}
-
-func intPtr(i int) *int { return &i }
-
-// configuredProviders returns a provider instance for every key that is set.
-func configuredProviders() []providers.Provider {
-	type entry struct {
-		env    string
-		create func(key string) (providers.Provider, error)
-	}
-	candidates := []entry{
-		{"OPENAI_API_KEY", func(k string) (providers.Provider, error) { return openaipkg.New(k, "") }},
-		{"ANTHROPIC_API_KEY", func(k string) (providers.Provider, error) { return anthropicpkg.New(k, "") }},
-		{"GROQ_API_KEY", func(k string) (providers.Provider, error) { return groqpkg.New(k, "") }},
-		{"GEMINI_API_KEY", func(k string) (providers.Provider, error) { return geminipkg.New(k, "") }},
-		{"MISTRAL_API_KEY", func(k string) (providers.Provider, error) { return mistralpkg.New(k, "") }},
-		{"TOGETHER_API_KEY", func(k string) (providers.Provider, error) { return togetherpkg.New(k, "") }},
-		{"COHERE_API_KEY", func(k string) (providers.Provider, error) { return coherepkg.New(k, "") }},
-		{"DEEPSEEK_API_KEY", func(k string) (providers.Provider, error) { return deepseekpkg.New(k, "") }},
-	}
-	var result []providers.Provider
-	for _, c := range candidates {
-		if key := os.Getenv(c.env); key != "" {
-			p, err := c.create(key)
-			if err != nil {
-				log.Fatalf("Failed to create provider for %s: %v", c.env, err)
-			}
-			result = append(result, p)
-		}
-	}
-	return result
 }

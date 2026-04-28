@@ -33,14 +33,7 @@ import (
 	"github.com/ferro-labs/ai-gateway/mcp"
 	"github.com/ferro-labs/ai-gateway/providers"
 
-	anthropicpkg "github.com/ferro-labs/ai-gateway/providers/anthropic"
-	coherepkg "github.com/ferro-labs/ai-gateway/providers/cohere"
-	deepseekpkg "github.com/ferro-labs/ai-gateway/providers/deepseek"
-	geminipkg "github.com/ferro-labs/ai-gateway/providers/gemini"
-	groqpkg "github.com/ferro-labs/ai-gateway/providers/groq"
-	mistralpkg "github.com/ferro-labs/ai-gateway/providers/mistral"
-	openaipkg "github.com/ferro-labs/ai-gateway/providers/openai"
-	togetherpkg "github.com/ferro-labs/ai-gateway/providers/together"
+	"github.com/ferro-labs/ai-gateway-examples/shared"
 )
 
 func main() {
@@ -51,7 +44,7 @@ func main() {
 	fmt.Printf("Mock MCP server listening at %s\n", mcpURL)
 
 	// 2. Pick a provider from any available API key in the environment.
-	provider := firstProvider()
+	provider := shared.FirstProvider()
 	model := provider.SupportedModels()[0]
 	fmt.Printf("Provider: %s  Model: %s\n\n", provider.Name(), model)
 
@@ -101,7 +94,7 @@ func main() {
 		Messages: []providers.Message{
 			{Role: "user", Content: "What is the current weather in San Francisco? Please use the available tool."},
 		},
-		MaxTokens: intPtr(256),
+		MaxTokens: shared.IntPtr(256),
 	}
 
 	fmt.Println("Sending request (agentic MCP loop active)...")
@@ -270,33 +263,3 @@ func mustMarshal(v any) json.RawMessage {
 	return b
 }
 
-func intPtr(i int) *int { return &i }
-
-// firstProvider returns the first provider for which an API key is set.
-func firstProvider() providers.Provider {
-	type entry struct {
-		env    string
-		create func(key string) (providers.Provider, error)
-	}
-	candidates := []entry{
-		{"OPENAI_API_KEY", func(k string) (providers.Provider, error) { return openaipkg.New(k, "") }},
-		{"ANTHROPIC_API_KEY", func(k string) (providers.Provider, error) { return anthropicpkg.New(k, "") }},
-		{"GROQ_API_KEY", func(k string) (providers.Provider, error) { return groqpkg.New(k, "") }},
-		{"GEMINI_API_KEY", func(k string) (providers.Provider, error) { return geminipkg.New(k, "") }},
-		{"MISTRAL_API_KEY", func(k string) (providers.Provider, error) { return mistralpkg.New(k, "") }},
-		{"TOGETHER_API_KEY", func(k string) (providers.Provider, error) { return togetherpkg.New(k, "") }},
-		{"COHERE_API_KEY", func(k string) (providers.Provider, error) { return coherepkg.New(k, "") }},
-		{"DEEPSEEK_API_KEY", func(k string) (providers.Provider, error) { return deepseekpkg.New(k, "") }},
-	}
-	for _, c := range candidates {
-		if key := os.Getenv(c.env); key != "" {
-			p, err := c.create(key)
-			if err != nil {
-				log.Fatalf("Failed to create provider for %s: %v", c.env, err)
-			}
-			return p
-		}
-	}
-	log.Fatal("No provider API key set. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY, MISTRAL_API_KEY, TOGETHER_API_KEY, COHERE_API_KEY, DEEPSEEK_API_KEY")
-	return nil
-}

@@ -7,6 +7,7 @@ Examples demonstrating how to use [Ferro Labs AI Gateway](https://github.com/fer
 ```text
 .
 ├── basic/                    # Direct provider request — the simplest use case
+├── streaming/                # Streaming chat completions (real-time token output)
 ├── custom-plugin/            # Write and register a custom plugin
 ├── embedded/                 # Embed the gateway inside an existing HTTP server
 ├── fallback/                 # Automatic fallback between providers on failure
@@ -14,7 +15,8 @@ Examples demonstrating how to use [Ferro Labs AI Gateway](https://github.com/fer
 ├── with-circuit-breaker/     # Per-provider circuit breaker configuration
 ├── with-guardrails/          # Built-in word-filter and token-limit guardrails
 ├── with-hooks/               # Event hooks for telemetry and audit logging
-└── with-mcp/                 # MCP (Model Context Protocol) tool-call integration
+├── with-mcp/                 # MCP (Model Context Protocol) tool-call integration
+└── shared/                   # Shared provider helpers (used by all examples)
 ```
 
 ## Quick Start
@@ -45,6 +47,14 @@ Sends a single chat completion request to the first provider for which an API ke
 
 ```bash
 OPENAI_API_KEY=sk-... go run ./basic
+```
+
+### streaming
+
+Streams chat completion tokens in real-time via `gw.RouteStream()`. Tokens are printed as they arrive instead of waiting for the full response.
+
+```bash
+OPENAI_API_KEY=sk-... go run ./streaming
 ```
 
 ### custom-plugin
