@@ -20,6 +20,7 @@ import (
 	"time"
 
 	aigateway "github.com/ferro-labs/ai-gateway"
+	"github.com/ferro-labs/ai-gateway/config"
 	"github.com/ferro-labs/ai-gateway/providers"
 
 	"github.com/ferro-labs/ai-gateway-examples/shared"
@@ -32,23 +33,23 @@ func main() {
 	}
 
 	// Build targets. Primary gets a circuit breaker; secondary is the fallback.
-	targets := make([]aigateway.Target, len(configured))
+	targets := make([]config.Target, len(configured))
 	for i, p := range configured {
-		targets[i] = aigateway.Target{VirtualKey: p.Name()}
+		targets[i] = config.Target{VirtualKey: p.Name()}
 	}
 
 	// Aggressive circuit breaker on the primary: open after 2 consecutive
 	// failures, stay open for 10 s, then allow one probe in half-open state.
-	targets[0].CircuitBreaker = &aigateway.CircuitBreakerConfig{
+	targets[0].CircuitBreaker = &config.CircuitBreakerConfig{
 		FailureThreshold: 2,
 		SuccessThreshold: 1,
 		Timeout:          "10s",
 	}
 	// Also retry up to 2 times on the primary before the circuit opens.
-	targets[0].Retry = &aigateway.RetryConfig{Attempts: 2}
+	targets[0].Retry = &config.RetryConfig{Attempts: 2}
 
-	gw, err := aigateway.New(aigateway.Config{
-		Strategy: aigateway.StrategyConfig{Mode: aigateway.ModeFallback},
+	gw, err := aigateway.New(config.Config{
+		Strategy: config.StrategyConfig{Mode: config.ModeFallback},
 		Targets:  targets,
 	})
 	if err != nil {
@@ -56,10 +57,10 @@ func main() {
 	}
 	for _, p := range configured {
 		gw.RegisterProvider(p)
-		fmt.Printf("Registered: %s (models: %d)\n", p.Name(), len(p.SupportedModels()))
+		fmt.Printf("Registered: %s\n", p.Name())
 	}
 
-	model := configured[0].SupportedModels()[0]
+	model := shared.DefaultModel(configured[0])
 	req := providers.Request{
 		Model: model,
 		Messages: []providers.Message{

@@ -30,6 +30,7 @@ import (
 	"time"
 
 	aigateway "github.com/ferro-labs/ai-gateway"
+	"github.com/ferro-labs/ai-gateway/config"
 	"github.com/ferro-labs/ai-gateway/mcp"
 	"github.com/ferro-labs/ai-gateway/providers"
 
@@ -45,16 +46,16 @@ func main() {
 
 	// 2. Pick a provider from any available API key in the environment.
 	provider := shared.FirstProvider()
-	model := provider.SupportedModels()[0]
+	model := shared.DefaultModel(provider)
 	fmt.Printf("Provider: %s  Model: %s\n\n", provider.Name(), model)
 
 	// 3. Build the gateway with the MCP server wired in.
 	//    MCP initialization (initialize + tools/list handshake) runs in the
 	//    background after New() returns; tools are available once the init
 	//    goroutine completes.
-	gw, err := aigateway.New(aigateway.Config{
-		Strategy: aigateway.StrategyConfig{Mode: aigateway.ModeSingle},
-		Targets:  []aigateway.Target{{VirtualKey: provider.Name()}},
+	gw, err := aigateway.New(config.Config{
+		Strategy: config.StrategyConfig{Mode: config.ModeSingle},
+		Targets:  []config.Target{{VirtualKey: provider.Name()}},
 		MCPServers: []mcp.ServerConfig{
 			{
 				Name:           "weather-server",
@@ -153,8 +154,9 @@ func mcpHandler(w http.ResponseWriter, r *http.Request) {
 			JSONRPC: "2.0",
 			ID:      req.ID,
 			Result: mustMarshal(map[string]any{
-				"name":    "weather-server",
-				"version": "1.0.0",
+				"protocolVersion": "2025-11-25",
+				"name":            "weather-server",
+				"version":         "1.0.0",
 				"capabilities": map[string]any{
 					"tools": map[string]any{"listChanged": false},
 				},
@@ -262,4 +264,3 @@ func mustMarshal(v any) json.RawMessage {
 	b, _ := json.Marshal(v)
 	return b
 }
-

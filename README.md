@@ -8,6 +8,10 @@ Examples demonstrating how to use [Ferro Labs AI Gateway](https://github.com/fer
 .
 ├── basic/                    # Direct provider request — the simplest use case
 ├── streaming/                # Streaming chat completions (real-time token output)
+├── embeddings/               # Generate embeddings (vectors) for search / RAG
+├── config-file/              # Load configuration from a YAML file
+├── conditional-routing/      # Route models to providers by request field
+├── caching/                  # Cache identical responses (cost / latency savings)
 ├── custom-plugin/            # Write and register a custom plugin
 ├── embedded/                 # Embed the gateway inside an existing HTTP server
 ├── fallback/                 # Automatic fallback between providers on failure
@@ -23,7 +27,7 @@ Examples demonstrating how to use [Ferro Labs AI Gateway](https://github.com/fer
 
 ### Prerequisites
 
-- Go 1.22+ — [install](https://go.dev/dl/)
+- Go 1.25+ — [install](https://go.dev/dl/)
 - At least one LLM provider API key (OpenAI, Anthropic, Groq, Gemini, Mistral, Together, Cohere, or DeepSeek)
 
 ### Run an Example
@@ -55,6 +59,38 @@ Streams chat completion tokens in real-time via `gw.RouteStream()`. Tokens are p
 
 ```bash
 OPENAI_API_KEY=sk-... go run ./streaming
+```
+
+### embeddings
+
+Generates text embeddings via `gw.Embed` and prints the cosine similarity between sentences — the building block for semantic search and RAG. Uses OpenAI's `text-embedding-3-small`.
+
+```bash
+OPENAI_API_KEY=sk-... go run ./embeddings
+```
+
+### config-file
+
+Loads the full gateway configuration from a YAML file with `config.LoadConfig` instead of building it in Go, and routes using a model alias defined in that file. The production configuration pattern.
+
+```bash
+OPENAI_API_KEY=sk-... go run ./config-file
+```
+
+### conditional-routing
+
+Uses the `conditional` strategy to route different models to different providers through one endpoint — the basis for cost/tier routing. Requires two provider keys.
+
+```bash
+OPENAI_API_KEY=sk-... ANTHROPIC_API_KEY=sk-ant-... go run ./conditional-routing
+```
+
+### caching
+
+Enables the built-in `response-cache` plugin so an identical request is served from memory instead of the provider. Prints per-call latency to show the cache hit.
+
+```bash
+OPENAI_API_KEY=sk-... go run ./caching
 ```
 
 ### custom-plugin

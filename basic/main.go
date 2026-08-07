@@ -25,7 +25,7 @@ func main() {
 	// Pick the first provider that has a key configured.
 	provider := shared.FirstProvider()
 
-	model := provider.SupportedModels()[0]
+	model := shared.DefaultModel(provider)
 	req := providers.Request{
 		Model: model,
 		Messages: []providers.Message{

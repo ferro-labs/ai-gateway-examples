@@ -22,17 +22,18 @@ import (
 	"time"
 
 	aigateway "github.com/ferro-labs/ai-gateway"
-	"github.com/ferro-labs/ai-gateway/providers"
 	"github.com/ferro-labs/ai-gateway-examples/shared"
+	"github.com/ferro-labs/ai-gateway/config"
+	"github.com/ferro-labs/ai-gateway/providers"
 )
 
 func main() {
 	provider := shared.FirstProvider()
 
 	// 1. Create and configure the gateway.
-	gw, err := aigateway.New(aigateway.Config{
-		Strategy: aigateway.StrategyConfig{Mode: aigateway.ModeSingle},
-		Targets:  []aigateway.Target{{VirtualKey: provider.Name()}},
+	gw, err := aigateway.New(config.Config{
+		Strategy: config.StrategyConfig{Mode: config.ModeSingle},
+		Targets:  []config.Target{{VirtualKey: provider.Name()}},
 	})
 	if err != nil {
 		log.Fatalf("Failed to create gateway: %v", err)

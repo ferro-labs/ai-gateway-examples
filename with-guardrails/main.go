@@ -1,7 +1,15 @@
-// Package main demonstrates using guardrail plugins in a standalone examples repo.
+// Package main demonstrates the gateway's built-in guardrail plugins.
 //
-// Guardrails run before the request reaches the provider: the word-filter
-// rejects blocked phrases, and max-token enforces token/message limits.
+// Guardrails run before a request reaches the provider. This example enables
+// two that ship with the gateway, purely through configuration:
+//
+//   - word-filter: rejects requests whose content contains a blocked phrase
+//   - max-token:   rejects requests that exceed token/message limits
+//
+// The blank imports below pull in the built-in plugin packages so their
+// factories register at init time; the gateway then constructs them from the
+// Plugins config and runs them via LoadPlugins. To write your own plugin
+// instead, see the custom-plugin example.
 //
 // OPENAI_API_KEY=sk-...        go run ./with-guardrails
 // ANTHROPIC_API_KEY=sk-ant-... go run ./with-guardrails
@@ -13,34 +21,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	aigateway "github.com/ferro-labs/ai-gateway"
-	"github.com/ferro-labs/ai-gateway/plugin"
-	"github.com/ferro-labs/ai-gateway/providers"
 	"github.com/ferro-labs/ai-gateway-examples/shared"
-)
+	"github.com/ferro-labs/ai-gateway/config"
+	"github.com/ferro-labs/ai-gateway/providers"
 
-func init() {
-	plugin.RegisterFactory("word-filter", func() plugin.Plugin { return &wordFilter{} })
-	plugin.RegisterFactory("max-token", func() plugin.Plugin { return &maxTokenGuardrail{} })
-}
+	// Register the built-in guardrail plugin factories via their init().
+	_ "github.com/ferro-labs/ai-gateway/plugin/maxtoken"
+	_ "github.com/ferro-labs/ai-gateway/plugin/wordfilter"
+)
 
 func main() {
 	provider := shared.FirstProvider()
-	model := provider.SupportedModels()[0]
+	model := shared.DefaultModel(provider)
 
-	gw, err := aigateway.New(aigateway.Config{
-		Strategy: aigateway.StrategyConfig{Mode: aigateway.ModeSingle},
-		Targets:  []aigateway.Target{{VirtualKey: provider.Name()}},
-		Plugins: []aigateway.PluginConfig{
+	gw, err := aigateway.New(config.Config{
+		Strategy: config.StrategyConfig{Mode: config.ModeSingle},
+		Targets:  []config.Target{{VirtualKey: provider.Name()}},
+		Plugins: []config.PluginConfig{
 			{
 				Name:    "word-filter",
 				Type:    "guardrail",
 				Stage:   "before_request",
 				Enabled: true,
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"blocked_words":  []string{"password", "secret", "api_key"},
 					"case_sensitive": false,
 				},
@@ -50,7 +56,7 @@ func main() {
 				Type:    "guardrail",
 				Stage:   "before_request",
 				Enabled: true,
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"max_tokens":   4096,
 					"max_messages": 50,
 				},
@@ -94,111 +100,4 @@ func main() {
 	} else {
 		fmt.Println("Passed (word-filter may not block this phrasing)")
 	}
-}
-
-type wordFilter struct {
-	blockedWords  []string
-	caseSensitive bool
-}
-
-func (w *wordFilter) Name() string { return "word-filter" }
-
-func (w *wordFilter) Type() plugin.PluginType { return plugin.TypeGuardrail }
-
-func (w *wordFilter) Init(config map[string]interface{}) error {
-	if words, ok := config["blocked_words"]; ok {
-		switch list := words.(type) {
-		case []interface{}:
-			for _, word := range list {
-				if s, ok := word.(string); ok {
-					w.blockedWords = append(w.blockedWords, s)
-				}
-			}
-		case []string:
-			w.blockedWords = append(w.blockedWords, list...)
-		}
-	}
-	if cs, ok := config["case_sensitive"].(bool); ok {
-		w.caseSensitive = cs
-	}
-	return nil
-}
-
-func (w *wordFilter) Execute(_ context.Context, pctx *plugin.Context) error {
-	if pctx.Request == nil || len(w.blockedWords) == 0 {
-		return nil
-	}
-
-	for _, msg := range pctx.Request.Messages {
-		content := msg.Content
-		if !w.caseSensitive {
-			content = strings.ToLower(content)
-		}
-		for _, word := range w.blockedWords {
-			check := word
-			if !w.caseSensitive {
-				check = strings.ToLower(check)
-			}
-			if strings.Contains(content, check) {
-				pctx.Reject = true
-				pctx.Reason = "blocked word detected: " + word
-				return nil
-			}
-		}
-	}
-
-	return nil
-}
-
-type maxTokenGuardrail struct {
-	maxTokens   int
-	maxMessages int
-}
-
-func (m *maxTokenGuardrail) Name() string { return "max-token" }
-
-func (m *maxTokenGuardrail) Type() plugin.PluginType { return plugin.TypeGuardrail }
-
-func (m *maxTokenGuardrail) Init(config map[string]interface{}) error {
-	m.maxTokens = 4096
-	if v, ok := config["max_tokens"]; ok {
-		switch val := v.(type) {
-		case float64:
-			m.maxTokens = int(val)
-		case int:
-			m.maxTokens = val
-		}
-	}
-
-	m.maxMessages = 100
-	if v, ok := config["max_messages"]; ok {
-		switch val := v.(type) {
-		case float64:
-			m.maxMessages = int(val)
-		case int:
-			m.maxMessages = val
-		}
-	}
-
-	return nil
-}
-
-func (m *maxTokenGuardrail) Execute(_ context.Context, pctx *plugin.Context) error {
-	if pctx.Request == nil {
-		return nil
-	}
-
-	if pctx.Request.MaxTokens != nil && *pctx.Request.MaxTokens > m.maxTokens {
-		pctx.Reject = true
-		pctx.Reason = fmt.Sprintf("max_tokens %d exceeds limit of %d", *pctx.Request.MaxTokens, m.maxTokens)
-		return nil
-	}
-
-	if len(pctx.Request.Messages) > m.maxMessages {
-		pctx.Reject = true
-		pctx.Reason = fmt.Sprintf("message count %d exceeds limit of %d", len(pctx.Request.Messages), m.maxMessages)
-		return nil
-	}
-
-	return nil
 }

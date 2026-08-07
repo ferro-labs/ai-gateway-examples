@@ -16,8 +16,9 @@ import (
 	"time"
 
 	aigateway "github.com/ferro-labs/ai-gateway"
-	"github.com/ferro-labs/ai-gateway/providers"
 	"github.com/ferro-labs/ai-gateway-examples/shared"
+	"github.com/ferro-labs/ai-gateway/config"
+	"github.com/ferro-labs/ai-gateway/providers"
 )
 
 func main() {
@@ -27,15 +28,15 @@ func main() {
 	}
 
 	// Build targets in the order providers were detected.
-	targets := make([]aigateway.Target, len(configured))
+	targets := make([]config.Target, len(configured))
 	for i, p := range configured {
-		targets[i] = aigateway.Target{VirtualKey: p.Name()}
+		targets[i] = config.Target{VirtualKey: p.Name()}
 	}
 	// Retry up to 3 times on the primary provider before falling back.
-	targets[0].Retry = &aigateway.RetryConfig{Attempts: 3}
+	targets[0].Retry = &config.RetryConfig{Attempts: 3}
 
-	gw, err := aigateway.New(aigateway.Config{
-		Strategy: aigateway.StrategyConfig{Mode: aigateway.ModeFallback},
+	gw, err := aigateway.New(config.Config{
+		Strategy: config.StrategyConfig{Mode: config.ModeFallback},
 		Targets:  targets,
 	})
 	if err != nil {
@@ -48,7 +49,7 @@ func main() {
 	}
 
 	// Use the first model from the primary provider.
-	model := configured[0].SupportedModels()[0]
+	model := shared.DefaultModel(configured[0])
 	req := providers.Request{
 		Model: model,
 		Messages: []providers.Message{

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	aigateway "github.com/ferro-labs/ai-gateway"
+	"github.com/ferro-labs/ai-gateway/config"
 	"github.com/ferro-labs/ai-gateway/providers"
 
 	"github.com/ferro-labs/ai-gateway-examples/shared"
@@ -27,15 +28,15 @@ func main() {
 	}
 
 	// Assign weights: first provider gets 70%, rest split the remaining 30%.
-	targets := make([]aigateway.Target, len(configured))
-	targets[0] = aigateway.Target{VirtualKey: configured[0].Name(), Weight: 70}
+	targets := make([]config.Target, len(configured))
+	targets[0] = config.Target{VirtualKey: configured[0].Name(), Weight: 70}
 	remaining := 30.0 / float64(len(configured)-1)
 	for i := 1; i < len(configured); i++ {
-		targets[i] = aigateway.Target{VirtualKey: configured[i].Name(), Weight: remaining}
+		targets[i] = config.Target{VirtualKey: configured[i].Name(), Weight: remaining}
 	}
 
-	gw, err := aigateway.New(aigateway.Config{
-		Strategy: aigateway.StrategyConfig{Mode: aigateway.ModeLoadBalance},
+	gw, err := aigateway.New(config.Config{
+		Strategy: config.StrategyConfig{Mode: config.ModeLoadBalance},
 		Targets:  targets,
 	})
 	if err != nil {
@@ -49,7 +50,7 @@ func main() {
 	}
 	fmt.Printf("Load balancing across:\n%s\n", weightInfo)
 
-	model := configured[0].SupportedModels()[0]
+	model := shared.DefaultModel(configured[0])
 	fmt.Printf("Sending 5 requests (model=%s)...\n\n", model)
 
 	for i := 1; i <= 5; i++ {

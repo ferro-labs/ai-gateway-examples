@@ -1,0 +1,19 @@
+# A complete gateway config, loaded at runtime with config.LoadConfig.
+#
+# Everything the other examples build in Go — strategy, targets, plugins,
+# aliases — lives here instead. This is how a real deployment is configured:
+# edit YAML, restart, no recompile. Decoding is strict, so a misspelled key is
+# rejected rather than silently ignored.
+apiVersion: v1
+
+# Route every request to the single "openai" target.
+strategy:
+  mode: single
+
+targets:
+  - virtual_key: openai
+
+# Friendly names → concrete model IDs, resolved before routing. A caller can
+# ask for "fast" and never hardcode a provider's model string.
+aliases:
+  fast: gpt-4o-mini

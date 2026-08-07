@@ -65,5 +65,27 @@ func ConfiguredProviders() []providers.Provider {
 	return result
 }
 
+// defaultModels maps each provider's canonical name to a current model id used
+// by the examples. Providers no longer report a model list (the gateway answers
+// that from its catalog and live discovery), so the examples name a model here.
+//
+// ponytail: example defaults — bump these as provider catalogs move.
+var defaultModels = map[string]string{
+	providers.NameOpenAI:    "gpt-4o-mini",
+	providers.NameAnthropic: "claude-3-5-haiku-latest",
+	providers.NameGroq:      "llama-3.3-70b-versatile",
+	providers.NameGemini:    "gemini-2.5-flash",
+	providers.NameMistral:   "mistral-small-latest",
+	providers.NameTogether:  "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+	providers.NameCohere:    "command-r",
+	providers.NameDeepSeek:  "deepseek-chat",
+}
+
+// DefaultModel returns a known model id for the given provider. Every provider
+// FirstProvider/ConfiguredProviders can create is covered by the map.
+func DefaultModel(p providers.Provider) string {
+	return defaultModels[p.Name()]
+}
+
 // IntPtr is a convenience helper for pointer-to-int fields.
 func IntPtr(i int) *int { return &i }

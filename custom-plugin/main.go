@@ -19,6 +19,7 @@ import (
 	"time"
 
 	aigateway "github.com/ferro-labs/ai-gateway"
+	"github.com/ferro-labs/ai-gateway/config"
 	"github.com/ferro-labs/ai-gateway/plugin"
 	"github.com/ferro-labs/ai-gateway/providers"
 
@@ -47,14 +48,17 @@ func (p *requestIDPlugin) Execute(_ context.Context, pctx *plugin.Context) error
 	return nil
 }
 
+// Close releases any resources the plugin holds. This one holds none.
+func (p *requestIDPlugin) Close() error { return nil }
+
 func main() {
 	provider := shared.FirstProvider()
-	model := provider.SupportedModels()[0]
+	model := shared.DefaultModel(provider)
 
 	// 1. Create gateway with a single-provider strategy.
-	gw, err := aigateway.New(aigateway.Config{
-		Strategy: aigateway.StrategyConfig{Mode: aigateway.ModeSingle},
-		Targets:  []aigateway.Target{{VirtualKey: provider.Name()}},
+	gw, err := aigateway.New(config.Config{
+		Strategy: config.StrategyConfig{Mode: config.ModeSingle},
+		Targets:  []config.Target{{VirtualKey: provider.Name()}},
 	})
 	if err != nil {
 		log.Fatalf("Failed to create gateway: %v", err)
